@@ -2,6 +2,7 @@ mod gumball {
     pub trait State {
         fn insertQuarter(self) -> Box<State>;
         fn ejectQuarter(self) -> Box<State>;
+        fn loadBalls(self, count: usize) -> Box<State>;
 /*
         fn turnCrunk(self) -> Box<State>;
         fn dispense(self) ->Box<State>;
@@ -16,8 +17,9 @@ mod gumball {
         pub fn new() -> Self {
             GumBallMachine { state : Box::new(WaitQuarter{count : 0})}
         }
-        pub fn loadBalls(&mut self, count: u32) {
-
+        pub fn loadBalls(self, count: usize) -> GumBallMachine {
+            let c = &self.state.loadBalls(count);
+            GumBallMachine { state : *c }
         }
     }
 
@@ -33,6 +35,9 @@ mod gumball {
             println!("Can't eject a Quarter. Has no Quarter");
             Box::new(self)
         }
+        fn loadBalls(self, count: usize) -> Box<State> {
+            Box::new(WaitQuarter {count : self.count + count})
+        }
     }
 
     struct HasQuarter {
@@ -46,6 +51,9 @@ mod gumball {
         fn ejectQuarter(self) -> Box<State> {
             println!("Has returned Quarter");
             Box::new(WaitQuarter {count : self.count})
+        }
+        fn loadBalls(self, count: usize) -> Box<State> {
+            Box::new(HasQuarter {count : self.count + count})
         }
 
     }
@@ -62,6 +70,9 @@ mod gumball {
             println!("Can't insert a Quarter. The GumBall was sold");
             Box::new(self)
         }
+        fn loadBalls(self, count: usize) -> Box<State> {
+            Box::new(SoldGum {count : self.count + count})
+        }
     }
 
     struct StockOut {
@@ -76,9 +87,10 @@ mod gumball {
             println!("Can't eject a Quarter. Has no Quarter");
             Box::new(self)
         }
-
+        fn loadBalls(self, count: usize) -> Box<State> {
+            Box::new(StockOut {count : self.count + count})
+        }
     }
-
 }
 
 use gumball::GumBallMachine;
@@ -86,4 +98,5 @@ use gumball::GumBallMachine;
 fn main() {
     println!("Hello, world!");
     let machine = GumBallMachine::new();
+    machine.loadBalls(10);
 }
