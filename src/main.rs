@@ -1,102 +1,94 @@
 mod gumball {
-    pub trait State {
-        fn insertQuarter(self) -> Box<State>;
-        fn ejectQuarter(self) -> Box<State>;
-        fn loadBalls(self, count: usize) -> Box<State>;
-/*
-        fn turnCrunk(self) -> Box<State>;
-        fn dispense(self) ->Box<State>;
 
-*/
+    #[derive(PartialEq, Eq)]
+    enum State {
+        WaitQuarter,
+        HasQuarter,
+        SoldGum,
+        OutOfStock,
     }
 
     pub struct GumBallMachine {
-        state : Box<State>
+        count : usize,
+        state : State
     }
     impl GumBallMachine {
         pub fn new() -> Self {
-            GumBallMachine { state : Box::new(WaitQuarter{count : 0})}
-        }
-        pub fn loadBalls(self, count: usize) -> GumBallMachine {
-            let c = &self.state.loadBalls(count);
-            GumBallMachine { state : *c }
-        }
-    }
-
-    struct WaitQuarter {
-        count : usize
-    }
-    impl State for WaitQuarter {
-        fn insertQuarter(self) -> Box<State> {
-            println!("A Quarter was inserted");
-            Box::new(HasQuarter { count : self.count })
-        }
-        fn ejectQuarter(self) -> Box<State> {
-            println!("Can't eject a Quarter. Has no Quarter");
-            Box::new(self)
-        }
-        fn loadBalls(self, count: usize) -> Box<State> {
-            Box::new(WaitQuarter {count : self.count + count})
-        }
-    }
-
-    struct HasQuarter {
-        count : usize
-    }
-    impl State for HasQuarter {
-        fn insertQuarter(self) -> Box<State> {
-            println!("Can't insert a Quarter. Already has a Quarter");
-            Box::new(self)
-        }
-        fn ejectQuarter(self) -> Box<State> {
-            println!("Has returned Quarter");
-            Box::new(WaitQuarter {count : self.count})
-        }
-        fn loadBalls(self, count: usize) -> Box<State> {
-            Box::new(HasQuarter {count : self.count + count})
+            GumBallMachine {
+                count : 0,
+                state : State::OutOfStock
+            }
         }
 
-    }
+        pub fn load(mut self, count: usize) ->Self {
+            println!("Loaded {} Gum Balls", &count);
+            self.count += count;
+            if self.state == State::OutOfStock {
+                self.state = State::WaitQuarter;
+            }
+            self
+        }
 
-    struct SoldGum {
-        count : usize
-    }
-    impl State for SoldGum {
-        fn insertQuarter(self) -> Box<State> {
-            println!("Already has a Quarter");
-            Box::new(self)
+        pub fn insert(mut self) -> Self{
+            if self.state == State::WaitQuarter {
+                println!("Quarter was accepted");
+                self.state = State::HasQuarter;
+            } else {
+                println!("Quarter was NOT accepted");
+            }
+            self
         }
-        fn ejectQuarter(self) -> Box<State> {
-            println!("Can't insert a Quarter. The GumBall was sold");
-            Box::new(self)
-        }
-        fn loadBalls(self, count: usize) -> Box<State> {
-            Box::new(SoldGum {count : self.count + count})
-        }
-    }
 
-    struct StockOut {
-        count : usize
-    }
-    impl State for StockOut {
-        fn insertQuarter(self) -> Box<State> {
-            println!("Out of stock");
-            Box::new(self)
+        pub fn eject(mut self) -> Self{
+            if self.state == State::HasQuarter {
+                println!("Quarter was EJECTED");
+                self.state = State::WaitQuarter;
+            } else {
+                println!("No Quarter to eject");
+            }
+            self
         }
-        fn ejectQuarter(self) -> Box<State> {
-            println!("Can't eject a Quarter. Has no Quarter");
-            Box::new(self)
+
+        pub fn buy(mut self) -> Self{
+             match self.state {
+                State::OutOfStock => {
+                    println!("Out of Stock");
+                },
+                State::WaitQuarter => {
+                    println!("Waiting for Quarter");
+                },
+                State::HasQuarter => {
+                    println!("Gum was sold");
+                    self.state = State::SoldGum;
+                    self.dispense();
+                },
+                State::SoldGum => {
+                    println!("Gum was already sold");
+                },
+            };
+            self
         }
-        fn loadBalls(self, count: usize) -> Box<State> {
-            Box::new(StockOut {count : self.count + count})
+
+        fn dispense(&mut self) {
+            self.count -= 1;
+            println!("Gum was rolled out to the slot");
+            if self.count == 0  {
+                self.state = State::OutOfStock
+            } else {
+                self.state = State::WaitQuarter
+            }
         }
     }
 }
 
+use std::rc::Rc;
 use gumball::GumBallMachine;
 
+
 fn main() {
-    println!("Hello, world!");
-    let machine = GumBallMachine::new();
-    machine.loadBalls(10);
+    println!("BEGIN!!!!");
+    GumBallMachine::new().load(4).insert().buy();
+    GumBallMachine::new().load(4).insert().eject().buy();
+    println!("END!!!!");
+
 }
